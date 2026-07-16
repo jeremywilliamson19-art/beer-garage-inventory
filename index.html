@@ -138,10 +138,8 @@ const STORAGE_KEY = "beerGarageInventory";
 const DEFAULT_BEERS = [
   ["Kona", 4, 9, 18, 9, 15, false],
   ["Lime Pilsner", 3, 10, 18, 20, 12, false],
-  ["N/A Athletic Wild", 0, 0, 18, 0, 12, false],
-  ["N/A Athletic Upside", 0, 0, 18, 0, 12, false],
   ["Cherry Limeaid", 4, 10, 18, 20, 12, false],
-  ["Happy Dad", 0, 0, 18, 0, 15, true],
+  ["Happy Dad", 1, 9, 18, 0, 15, false],
   ["Mango White Claw", 4, 10, 18, 20, 12, false],
   ["Ultra", 4, 9, 18, 9, 15, false],
   ["Stella", 0, 0, 18, 0, 15, true],
@@ -153,8 +151,6 @@ const DEFAULT_BEERS = [
   ["Red Bull", 0, 0, 18, 0, 12, true],
   ["0 Sugar Red Bull", 0, 0, 18, 0, 12, true],
   ["Peach Red Bull", 0, 0, 18, 0, 12, true],
-  ["Jolene Black", 0, 0, 18, 0, 12, true],
-  ["Jolene White", 0, 0, 18, 0, 12, true],
 ].map(([name, shelfRows, shelfCansPerRow, coolers, casesPerRow, cansPerCase, directShelf], i) => ({
   id: i + 1, name, shelfRows, shelfCansPerRow, coolers, directShelf,
   loose: 0, shelfCount: 0, casesPerRow, cansPerCase, fullRows: 0, looseCases: 0,

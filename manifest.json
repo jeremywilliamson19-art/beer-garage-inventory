@@ -1,0 +1,8 @@
+{
+  "name": "South Beer Garage Inventory",
+  "short_name": "Beer Garage",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1E1B18",
+  "theme_color": "#1E1B18"
+}

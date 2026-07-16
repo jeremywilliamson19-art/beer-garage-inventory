@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>South Beer Garage Inventory</title>
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Beer Garage" />
+<meta name="theme-color" content="#1E1B18" />
+<link rel="manifest" href="manifest.json" />
+<style>
+  :root{
+    --bg:#1E1B18; --surface:#262220; --surface2:#2F2A26; --border:#46392F;
+    --amber:#E8A23D; --amberDeep:#B87614; --cream:#F3ECDF; --muted:#A6978A; --red:#C2453B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--cream);
+    font-family:Arial,Helvetica,sans-serif; padding:12px 10px 50px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    flex-wrap:wrap; gap:10px; margin-bottom:14px; padding-bottom:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .eyebrow{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--amber); font-weight:700;}
+  h1{font-size:16px; margin:2px 0 0; font-weight:800;}
+  .totals{display:flex; gap:16px;}
+  .total-box{text-align:right;}
+  .total-label{font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);}
+  .total-value{font-family:'Courier New',monospace; font-weight:800;}
+  #grandTotal{font-size:22px; color:var(--amber);}
+  #grandStarting{font-size:16px; color:var(--cream);}
+
+  .legend{
+    display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:14px;
+  }
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:12px; height:12px; border-radius:3px; display:inline-block;}
+  .swatch.editable{background:rgba(232,162,61,0.18); border:1px solid var(--amber);}
+  .swatch.locked{background:var(--surface2); border:1px solid var(--border);}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    margin-bottom:12px; overflow:hidden;
+  }
+  .card-head{
+    display:flex; align-items:center; gap:10px; padding:12px 12px 10px;
+    background:var(--surface2); border-bottom:1px solid var(--border);
+  }
+  input.name{
+    flex:1; background:transparent; border:none; border-bottom:1px dashed var(--border);
+    color:var(--cream); font-size:17px; font-weight:800; padding:4px 2px; outline:none;
+    min-width:0;
+  }
+  .card-total{text-align:right; flex-shrink:0;}
+  .card-total .total-label{font-size:9px;}
+  .card-total .total-value{font-size:22px; color:var(--amber);}
+
+  .entry-list{padding:10px 12px 4px;}
+  .entry-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .entry-row:last-child{border-bottom:none;}
+  .entry-label{font-size:14px; color:var(--cream);}
+  .entry-sub{font-size:11px; color:var(--muted); display:block; margin-top:1px;}
+  input.entry{
+    width:84px; background:rgba(232,162,61,0.14); border:1px solid var(--amber);
+    border-radius:6px; color:var(--cream); font-size:18px; font-weight:700;
+    text-align:center; padding:8px 4px; outline:none;
+  }
+
+  details{padding:2px 12px 10px;}
+  summary{
+    font-size:12px; color:var(--muted); cursor:pointer; padding:8px 0;
+    list-style:none; display:flex; align-items:center; gap:6px;
+  }
+  summary::-webkit-details-marker{display:none;}
+  summary:before{content:"▸"; font-size:10px;}
+  details[open] summary:before{content:"▾";}
+  .setup-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;
+    padding:6px 0 4px; font-size:13px;
+  }
+  .setup-item{display:flex; justify-content:space-between; gap:8px;}
+  .setup-item .k{color:var(--muted);}
+  .setup-item .v{color:var(--cream); font-family:'Courier New',monospace; font-weight:700;}
+  .setup-item.hi .v{color:var(--amber);}
+  .remove-row{margin-top:8px; padding-top:8px; border-top:1px solid var(--border); text-align:right;}
+  .del-btn{
+    background:transparent; border:1px solid var(--border); color:var(--red);
+    font-size:12px; border-radius:6px; padding:6px 10px; cursor:pointer;
+  }
+
+  #addBtn{
+    margin-top:8px; width:100%; display:flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--amberDeep); border:none; border-radius:8px; color:#1E1B18;
+    font-weight:800; padding:13px 16px; font-size:15px; cursor:pointer;
+  }
+  .hint{font-size:11px; color:var(--muted); margin-top:10px; line-height:1.5;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">South Beer Garage — Utah First Credit Union Amphitheater</div>
+    <h1>Inventory Count — Herriman Youth Football</h1>
+  </div>
+  <div class="totals">
+    <div class="total-box">
+      <div class="total-label">Starting shelf cans</div>
+      <div class="total-value" id="grandStarting">0</div>
+    </div>
+    <div class="total-box">
+      <div class="total-label">Grand total cans</div>
+      <div class="total-value" id="grandTotal">0</div>
+    </div>
+  </div>
+</header>
+
+<div class="legend">
+  <span><span class="swatch editable"></span> Type into these during the count</span>
+  <span><span class="swatch locked"></span> Locked — tap "Setup" to view</span>
+</div>
+
+<div id="cards"></div>
+
+<button id="addBtn">+ Add beer</button>
+<div class="hint">Data saves automatically on this device only (it does not sync between phones). Shelf numbers are per cooler.</div>
+
+<script>
+const STORAGE_KEY = "beerGarageInventory";
+
+const DEFAULT_BEERS = [
+  ["Kona", 4, 9, 18, 9, 15, false],
+  ["Lime Pilsner", 3, 10, 18, 20, 12, false],
+  ["N/A Athletic Wild", 0, 0, 18, 0, 12, false],
+  ["N/A Athletic Upside", 0, 0, 18, 0, 12, false],
+  ["Cherry Limeaid", 4, 10, 18, 20, 12, false],
+  ["Happy Dad", 0, 0, 18, 0, 15, true],
+  ["Mango White Claw", 4, 10, 18, 20, 12, false],
+  ["Ultra", 4, 9, 18, 9, 15, false],
+  ["Stella", 0, 0, 18, 0, 15, true],
+  ["Modelo", 4, 9, 18, 14, 12, false],
+  ["Clubtail", 3, 9, 18, 17, 12, false],
+  ["Dirty Pop", 2, 10, 18, 20, 12, false],
+  ["Bud Light", 4, 9, 18, 9, 15, false],
+  ["Liquid Death Still", 1, 90, 15, 20, 12, false],
+  ["Red Bull", 0, 0, 18, 0, 12, true],
+  ["0 Sugar Red Bull", 0, 0, 18, 0, 12, true],
+  ["Peach Red Bull", 0, 0, 18, 0, 12, true],
+  ["Jolene Black", 0, 0, 18, 0, 12, true],
+  ["Jolene White", 0, 0, 18, 0, 12, true],
+].map(([name, shelfRows, shelfCansPerRow, coolers, casesPerRow, cansPerCase, directShelf], i) => ({
+  id: i + 1, name, shelfRows, shelfCansPerRow, coolers, directShelf,
+  loose: 0, shelfCount: 0, casesPerRow, cansPerCase, fullRows: 0, looseCases: 0,
+}));
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return DEFAULT_BEERS;
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+let state = load();
+let nextId = state.reduce((m, r) => Math.max(m, r.id), 0) + 1;
+
+function calc(r) {
+  const starting = r.shelfRows * r.shelfCansPerRow * r.coolers;
+  const shelfNet = r.directShelf ? r.shelfCount : Math.max(0, starting - r.loose);
+  const palletCans = (r.fullRows * r.casesPerRow + r.looseCases) * r.cansPerCase;
+  return { starting, shelfNet, palletCans, total: shelfNet + palletCans };
+}
+
+function entryInput(value, onChange) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.inputMode = "numeric";
+  input.pattern = "[0-9]*";
+  input.className = "entry";
+  input.value = value;
+  input.addEventListener("input", (e) => {
+    const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+    if (digitsOnly !== e.target.value) e.target.value = digitsOnly;
+    onChange(digitsOnly === "" ? 0 : Number(digitsOnly));
+  });
+  return input;
+}
+
+function entryRow(label, sub, value, onChange) {
+  const row = document.createElement("div");
+  row.className = "entry-row";
+  const labelWrap = document.createElement("div");
+  const labelEl = document.createElement("span");
+  labelEl.className = "entry-label";
+  labelEl.textContent = label;
+  labelWrap.appendChild(labelEl);
+  if (sub) {
+    const subEl = document.createElement("span");
+    subEl.className = "entry-sub";
+    subEl.textContent = sub;
+    labelWrap.appendChild(subEl);
+  }
+  row.appendChild(labelWrap);
+  row.appendChild(entryInput(value, onChange));
+  return row;
+}
+
+function setupItem(label, valueEl, hi) {
+  const item = document.createElement("div");
+  item.className = "setup-item" + (hi ? " hi" : "");
+  const k = document.createElement("span");
+  k.className = "k";
+  k.textContent = label;
+  const v = document.createElement("span");
+  v.className = "v";
+  v.appendChild(valueEl);
+  item.appendChild(k);
+  item.appendChild(v);
+  return item;
+}
+function textNode(text) {
+  return document.createTextNode(text);
+}
+
+const cardRefs = {}; // id -> { totalEl, shelfNetEl, palletCansEl }
+
+function updateRow(r) {
+  const refs = cardRefs[r.id];
+  if (!refs) return;
+  const { shelfNet, palletCans, total } = calc(r);
+  refs.totalEl.textContent = total.toLocaleString();
+  if (refs.shelfNetEl) refs.shelfNetEl.textContent = shelfNet.toLocaleString();
+  refs.palletCansEl.textContent = palletCans.toLocaleString();
+}
+
+function updateGrandTotals() {
+  let grandTotal = 0, grandStarting = 0;
+  state.forEach((r) => {
+    const { starting, total } = calc(r);
+    grandTotal += total;
+    grandStarting += starting;
+  });
+  document.getElementById("grandTotal").textContent = grandTotal.toLocaleString();
+  document.getElementById("grandStarting").textContent = grandStarting.toLocaleString();
+}
+
+function buildCard(r) {
+  const { starting, shelfNet, palletCans, total } = calc(r);
+  const refs = {};
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  // Head: name + total
+  const head = document.createElement("div");
+  head.className = "card-head";
+  const nameInput = document.createElement("input");
+  nameInput.className = "name";
+  nameInput.value = r.name;
+  nameInput.addEventListener("input", (e) => { r.name = e.target.value; save(); });
+  head.appendChild(nameInput);
+
+  const totalBox = document.createElement("div");
+  totalBox.className = "card-total";
+  const totalLabel = document.createElement("div");
+  totalLabel.className = "total-label";
+  totalLabel.textContent = "Total cans";
+  const totalValue = document.createElement("div");
+  totalValue.className = "total-value";
+  totalValue.textContent = total.toLocaleString();
+  refs.totalEl = totalValue;
+  totalBox.appendChild(totalLabel);
+  totalBox.appendChild(totalValue);
+  head.appendChild(totalBox);
+  card.appendChild(head);
+
+  // Entry list
+  const entryList = document.createElement("div");
+  entryList.className = "entry-list";
+  if (r.directShelf) {
+    entryList.appendChild(entryRow("Total cans on shelf", "No pallet — count what's there", r.shelfCount, (v) => {
+      r.shelfCount = v; save(); updateRow(r); updateGrandTotals();
+    }));
+  } else {
+    entryList.appendChild(entryRow("Missing from shelf", null, r.loose, (v) => {
+      r.loose = v; save(); updateRow(r); updateGrandTotals();
+    }));
+  }
+  entryList.appendChild(entryRow("Pallet rows", "Full rows counted", r.fullRows, (v) => {
+    r.fullRows = v; save(); updateRow(r); updateGrandTotals();
+  }));
+  entryList.appendChild(entryRow("Pallet loose cases", "Cases not in a full row", r.looseCases, (v) => {
+    r.looseCases = v; save(); updateRow(r); updateGrandTotals();
+  }));
+  card.appendChild(entryList);
+
+  // Setup details
+  const details = document.createElement("details");
+  const summary = document.createElement("summary");
+  summary.textContent = "Setup numbers (locked)";
+  details.appendChild(summary);
+
+  const grid = document.createElement("div");
+  grid.className = "setup-grid";
+  if (!r.directShelf) {
+    const startingValEl = textNode(starting.toLocaleString());
+    grid.appendChild(setupItem("Starting shelf", startingValEl, true));
+    const shelfNetValEl = textNode(shelfNet.toLocaleString());
+    refs.shelfNetEl = shelfNetValEl;
+    grid.appendChild(setupItem("Shelf net", shelfNetValEl));
+    grid.appendChild(setupItem("Shelf rows", textNode(r.shelfRows)));
+    grid.appendChild(setupItem("Shelf cans/row", textNode(r.shelfCansPerRow)));
+    grid.appendChild(setupItem("Coolers", textNode(r.coolers)));
+  }
+  const palletCansValEl = textNode(palletCans.toLocaleString());
+  refs.palletCansEl = palletCansValEl;
+  grid.appendChild(setupItem("Pallet cans", palletCansValEl));
+  grid.appendChild(setupItem("Pallet cases/row", textNode(r.casesPerRow)));
+  grid.appendChild(setupItem("Pallet cans/case", textNode(r.cansPerCase)));
+  details.appendChild(grid);
+
+  const removeRow = document.createElement("div");
+  removeRow.className = "remove-row";
+  const delBtn = document.createElement("button");
+  delBtn.className = "del-btn";
+  delBtn.textContent = "Remove this beer";
+  delBtn.addEventListener("click", () => {
+    state = state.filter((x) => x.id !== r.id);
+    save();
+    delete cardRefs[r.id];
+    renderAll();
+  });
+  removeRow.appendChild(delBtn);
+  details.appendChild(removeRow);
+
+  card.appendChild(details);
+  cardRefs[r.id] = refs;
+  return card;
+}
+
+function renderAll() {
+  const container = document.getElementById("cards");
+  container.innerHTML = "";
+  for (const id in cardRefs) delete cardRefs[id];
+  state.forEach((r) => {
+    container.appendChild(buildCard(r));
+  });
+  updateGrandTotals();
+}
+
+document.getElementById("addBtn").addEventListener("click", () => {
+  state.push({
+    id: nextId++, name: "New beer", shelfRows: 0, shelfCansPerRow: 0, coolers: 18, directShelf: true,
+    loose: 0, shelfCount: 0, casesPerRow: 0, cansPerCase: 12, fullRows: 0, looseCases: 0,
+  });
+  save();
+  renderAll();
+});
+
+renderAll();
+</script>
+</body>
+</html>

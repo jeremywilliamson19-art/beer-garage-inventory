@@ -41,6 +41,10 @@
   .swatch{width:12px; height:12px; border-radius:3px; display:inline-block;}
   .swatch.editable{background:rgba(232,162,61,0.18); border:1px solid var(--amber);}
   .swatch.locked{background:var(--surface2); border:1px solid var(--border);}
+  .clear-btn{
+    margin-left:auto; background:transparent; border:1px solid var(--red); color:var(--red);
+    font-size:12px; font-weight:700; border-radius:6px; padding:6px 10px; cursor:pointer;
+  }
 
   .card{
     background:var(--surface); border:1px solid var(--border); border-radius:10px;
@@ -125,6 +129,7 @@
 <div class="legend">
   <span><span class="swatch editable"></span> Type into these during the count</span>
   <span><span class="swatch locked"></span> Locked — tap "Setup" to view</span>
+  <button id="clearBtn" class="clear-btn">Clear count</button>
 </div>
 
 <div id="cards"></div>
@@ -353,6 +358,32 @@ function renderAll() {
   });
   updateGrandTotals();
 }
+
+const clearBtn = document.getElementById("clearBtn");
+let clearArmed = false;
+let clearArmTimeout = null;
+clearBtn.addEventListener("click", () => {
+  if (!clearArmed) {
+    clearArmed = true;
+    clearBtn.textContent = "Tap again to confirm";
+    clearArmTimeout = setTimeout(() => {
+      clearArmed = false;
+      clearBtn.textContent = "Clear count";
+    }, 4000);
+    return;
+  }
+  clearTimeout(clearArmTimeout);
+  clearArmed = false;
+  clearBtn.textContent = "Clear count";
+  state.forEach((r) => {
+    r.loose = 0;
+    r.shelfCount = 0;
+    r.fullRows = 0;
+    r.looseCases = 0;
+  });
+  save();
+  renderAll();
+});
 
 document.getElementById("addBtn").addEventListener("click", () => {
   state.push({

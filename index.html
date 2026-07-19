@@ -146,30 +146,59 @@ const DEFAULT_BEERS = [
   ["Cherry Limeaid", 4, 10, 18, 20, 12, false],
   ["Happy Dad", 1, 9, 18, 0, 15, false],
   ["Mango White Claw", 4, 10, 18, 20, 12, false],
-  ["Ultra", 4, 9, 18, 9, 15, false],
+  ["Ultra", 5, 9, 18, 9, 15, false],
   ["Stella", 1, 9, 18, 0, 15, false],
   ["Modelo", 4, 9, 18, 14, 12, false],
   ["Clubtail", 3, 9, 18, 17, 12, false],
   ["Dirty Pop", 2, 10, 18, 20, 12, false],
   ["Bud Light", 4, 9, 18, 9, 15, false],
   ["Liquid Death Still", 1, 90, 15, 20, 12, false],
-  ["Red Bull", 0, 0, 18, 0, 12, true],
-  ["0 Sugar Red Bull", 0, 0, 18, 0, 12, true],
-  ["Peach Red Bull", 0, 0, 18, 0, 12, true],
 ].map(([name, shelfRows, shelfCansPerRow, coolers, casesPerRow, cansPerCase, directShelf], i) => ({
   id: i + 1, name, shelfRows, shelfCansPerRow, coolers, directShelf,
   loose: 0, shelfCount: 0, casesPerRow, cansPerCase, fullRows: 0, looseCases: 0,
 }));
 
+const DATA_VERSION = 2;
+const REMOVED_NAMES = new Set([
+  "n/a athletic wild", "n/a athletic upside", "jolene black", "jolene white",
+  "red bull", "0 sugar red bull", "peach red bull",
+].map((n) => n.toLowerCase()));
+
+function migrate(oldBeers) {
+  const oldByName = new Map(oldBeers.map((b) => [String(b.name).trim().toLowerCase(), b]));
+  const defaultNames = new Set(DEFAULT_BEERS.map((b) => b.name.trim().toLowerCase()));
+  const merged = DEFAULT_BEERS.map((def) => {
+    const old = oldByName.get(def.name.trim().toLowerCase());
+    if (!old) return { ...def };
+    return {
+      ...def,
+      loose: old.loose || 0,
+      shelfCount: old.shelfCount || 0,
+      fullRows: old.fullRows || 0,
+      looseCases: old.looseCases || 0,
+    };
+  });
+  oldBeers.forEach((old) => {
+    const key = String(old.name).trim().toLowerCase();
+    if (!defaultNames.has(key) && !REMOVED_NAMES.has(key)) merged.push(old);
+  });
+  return merged.map((b, i) => ({ ...b, id: i + 1 }));
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const storedVersion = Array.isArray(parsed) ? 0 : (parsed.v || 0);
+      const storedBeers = Array.isArray(parsed) ? parsed : parsed.beers;
+      return storedVersion < DATA_VERSION ? migrate(storedBeers) : storedBeers;
+    }
   } catch (e) {}
-  return DEFAULT_BEERS;
+  return DEFAULT_BEERS.map((b) => ({ ...b }));
 }
 function save() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: DATA_VERSION, beers: state })); } catch (e) {}
 }
 
 let state = load();

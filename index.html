@@ -158,47 +158,59 @@ const DEFAULT_BEERS = [
   loose: 0, shelfCount: 0, casesPerRow, cansPerCase, fullRows: 0, looseCases: 0,
 }));
 
-const DATA_VERSION = 2;
+// Beers permanently retired from the app; never resurrect these from old saved data.
 const REMOVED_NAMES = new Set([
   "n/a athletic wild", "n/a athletic upside", "jolene black", "jolene white",
   "red bull", "0 sugar red bull", "peach red bull",
 ].map((n) => n.toLowerCase()));
 
-function migrate(oldBeers) {
-  const oldByName = new Map(oldBeers.map((b) => [String(b.name).trim().toLowerCase(), b]));
+// Setup numbers (shelf/pallet math) always come from DEFAULT_BEERS above, never from
+// saved data — this runs on every load so a code fix always reaches every device.
+// Only the hand-entered counts persist. removedDefaults tracks beers the user deleted
+// so they don't reappear just because they're still in DEFAULT_BEERS.
+function reconcile(storedBeers, removedDefaults) {
+  const removedSet = new Set((removedDefaults || []).map((n) => String(n).toLowerCase()));
+  const oldByName = new Map(storedBeers.map((b) => [String(b.name).trim().toLowerCase(), b]));
   const defaultNames = new Set(DEFAULT_BEERS.map((b) => b.name.trim().toLowerCase()));
-  const merged = DEFAULT_BEERS.map((def) => {
-    const old = oldByName.get(def.name.trim().toLowerCase());
-    if (!old) return { ...def };
-    return {
-      ...def,
-      loose: old.loose || 0,
-      shelfCount: old.shelfCount || 0,
-      fullRows: old.fullRows || 0,
-      looseCases: old.looseCases || 0,
-    };
-  });
-  oldBeers.forEach((old) => {
+
+  const merged = DEFAULT_BEERS
+    .filter((def) => !removedSet.has(def.name.trim().toLowerCase()))
+    .map((def) => {
+      const old = oldByName.get(def.name.trim().toLowerCase());
+      if (!old) return { ...def };
+      return {
+        ...def,
+        loose: old.loose || 0,
+        shelfCount: old.shelfCount || 0,
+        fullRows: old.fullRows || 0,
+        looseCases: old.looseCases || 0,
+      };
+    });
+
+  storedBeers.forEach((old) => {
     const key = String(old.name).trim().toLowerCase();
     if (!defaultNames.has(key) && !REMOVED_NAMES.has(key)) merged.push(old);
   });
+
   return merged.map((b, i) => ({ ...b, id: i + 1 }));
 }
+
+let removedDefaults = [];
 
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      const storedVersion = Array.isArray(parsed) ? 0 : (parsed.v || 0);
-      const storedBeers = Array.isArray(parsed) ? parsed : parsed.beers;
-      return storedVersion < DATA_VERSION ? migrate(storedBeers) : storedBeers;
+      const storedBeers = Array.isArray(parsed) ? parsed : (parsed.beers || []);
+      removedDefaults = Array.isArray(parsed) ? [] : (parsed.removedDefaults || []);
+      return reconcile(storedBeers, removedDefaults);
     }
   } catch (e) {}
   return DEFAULT_BEERS.map((b) => ({ ...b }));
 }
 function save() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: DATA_VERSION, beers: state })); } catch (e) {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ beers: state, removedDefaults })); } catch (e) {}
 }
 
 let state = load();
@@ -222,6 +234,15 @@ function entryInput(value, onChange) {
     const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
     if (digitsOnly !== e.target.value) e.target.value = digitsOnly;
     onChange(digitsOnly === "" ? 0 : Number(digitsOnly));
+  });
+  input.addEventListener("focus", () => {
+    if (input.value === "0") input.value = "";
+  });
+  input.addEventListener("blur", () => {
+    if (input.value === "") {
+      input.value = "0";
+      onChange(0);
+    }
   });
   return input;
 }
@@ -365,6 +386,10 @@ function buildCard(r) {
   delBtn.className = "del-btn";
   delBtn.textContent = "Remove this beer";
   delBtn.addEventListener("click", () => {
+    const key = r.name.trim().toLowerCase();
+    if (DEFAULT_BEERS.some((d) => d.name.trim().toLowerCase() === key)) {
+      removedDefaults.push(key);
+    }
     state = state.filter((x) => x.id !== r.id);
     save();
     delete cardRefs[r.id];

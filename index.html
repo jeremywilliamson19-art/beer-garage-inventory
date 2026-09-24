@@ -141,20 +141,20 @@
 const STORAGE_KEY = "beerGarageInventory";
 
 const DEFAULT_BEERS = [
-  ["Kona", 4, 9, 18, 9, 15, false],
-  ["Lime Pilsner", 3, 10, 18, 20, 12, false],
-  ["Cherry Limeaid", 4, 10, 18, 20, 12, false],
-  ["Happy Dad", 1, 9, 18, 0, 15, false],
-  ["Mango White Claw", 4, 10, 18, 20, 12, false],
-  ["Ultra", 5, 9, 18, 9, 15, false],
-  ["Stella", 1, 9, 18, 0, 15, false],
-  ["Modelo", 4, 9, 18, 14, 12, false],
-  ["Clubtail", 3, 9, 18, 17, 12, false],
-  ["Dirty Pop", 2, 10, 18, 20, 12, false],
-  ["Bud Light", 4, 9, 18, 9, 15, false],
-  ["Liquid Death Still", 1, 90, 15, 20, 12, false],
-].map(([name, shelfRows, shelfCansPerRow, coolers, casesPerRow, cansPerCase, directShelf], i) => ({
-  id: i + 1, name, shelfRows, shelfCansPerRow, coolers, directShelf,
+  ["Kona", 312, 9, 15, false],
+  ["Lime Pilsner", 252, 20, 12, false],
+  ["Cherry Limeaid", 336, 20, 12, false],
+  ["Happy Dad", 54, 0, 15, false],
+  ["Mango White Claw", 336, 20, 12, false],
+  ["Ultra", 390, 9, 15, false],
+  ["Stella", 54, 0, 15, false],
+  ["Modelo", 234, 14, 12, false],
+  ["Clubtail", 234, 17, 12, false],
+  ["Dirty Pop", 168, 20, 12, false],
+  ["Bud Light", 312, 9, 15, false],
+  ["Liquid Death Still", 1350, 20, 12, false],
+].map(([name, startingCans, casesPerRow, cansPerCase, directShelf], i) => ({
+  id: i + 1, name, startingCans, directShelf,
   loose: 0, shelfCount: 0, casesPerRow, cansPerCase, fullRows: 0, looseCases: 0,
 }));
 
@@ -217,7 +217,7 @@ let state = load();
 let nextId = state.reduce((m, r) => Math.max(m, r.id), 0) + 1;
 
 function calc(r) {
-  const starting = r.shelfRows * r.shelfCansPerRow * r.coolers;
+  const starting = r.startingCans != null ? r.startingCans : r.shelfRows * r.shelfCansPerRow * r.coolers;
   const shelfNet = r.directShelf ? r.shelfCount : Math.max(0, starting - r.loose);
   const palletCans = (r.fullRows * r.casesPerRow + r.looseCases) * r.cansPerCase;
   return { starting, shelfNet, palletCans, total: shelfNet + palletCans };
@@ -369,9 +369,11 @@ function buildCard(r) {
     const shelfNetValEl = textNode(shelfNet.toLocaleString());
     refs.shelfNetEl = shelfNetValEl;
     grid.appendChild(setupItem("Shelf net", shelfNetValEl));
-    grid.appendChild(setupItem("Shelf rows", textNode(r.shelfRows)));
-    grid.appendChild(setupItem("Shelf cans/row", textNode(r.shelfCansPerRow)));
-    grid.appendChild(setupItem("Coolers", textNode(r.coolers)));
+    if (r.startingCans == null) {
+      grid.appendChild(setupItem("Shelf rows", textNode(r.shelfRows)));
+      grid.appendChild(setupItem("Shelf cans/row", textNode(r.shelfCansPerRow)));
+      grid.appendChild(setupItem("Coolers", textNode(r.coolers)));
+    }
   }
   const palletCansValEl = textNode(palletCans.toLocaleString());
   refs.palletCansEl = palletCansValEl;
